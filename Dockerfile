@@ -1,9 +1,11 @@
 # Estágio 1: Build (para instalar as dependências)
-# Usamos uma imagem base leve e específica para a versão do Python.
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
 # Define o diretório de trabalho dentro da imagem
 WORKDIR /app
+
+# COPIAMOS AGORA O README.MD (Correção para o erro 1.5.24)
+COPY README.md ./
 
 # Copia os arquivos de configuração do Poetry para o ambiente de build
 COPY pyproject.toml poetry.lock ./
@@ -18,8 +20,7 @@ RUN poetry config virtualenvs.create false
 RUN poetry install --only main
 
 # Estágio 2: Produção (Runtime)
-# Imagem ainda mais leve para o ambiente de execução
-FROM python:3.11-slim as runtime
+FROM python:3.11-slim AS runtime
 
 WORKDIR /app
 
