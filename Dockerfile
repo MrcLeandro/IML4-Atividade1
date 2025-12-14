@@ -1,46 +1,38 @@
-# Arquivo: Dockerfile
-
-# ----------------------------------------
-# STAGE 1: BUILD - Instala dependências com Poetry
-# ----------------------------------------
+# Estágio 1: Build (para instalar as dependências)
+# Usamos uma imagem base leve e específica para a versão do Python.
 FROM python:3.11-slim as builder
 
-# Define o diretório de trabalho dentro do container
+# Define o diretório de trabalho dentro da imagem
 WORKDIR /app
+
+# Copia os arquivos de configuração do Poetry para o ambiente de build
+COPY pyproject.toml poetry.lock ./
 
 # Instala o Poetry
 RUN pip install poetry
 
-# Copia os arquivos de configuração do Poetry
-COPY pyproject.toml poetry.lock ./
+# Configura o Poetry para não criar ambientes virtuais dentro do container
+RUN poetry config virtualenvs.create false
 
-# Instala as dependências de produção, excluindo as de desenvolvimento e o código-fonte
-RUN poetry install --without dev --no-root
+# Instala as dependências de produção
+RUN poetry install --only main
 
+# Estágio 2: Produção (Runtime)
+# Imagem ainda mais leve para o ambiente de execução
+FROM python:3.11-slim as runtime
 
-# ----------------------------------------
-# STAGE 2: FINAL - Imagem de Produção Leve
-# ----------------------------------------
-FROM python:3.11-slim as final
-
-# Define o diretório de trabalho
 WORKDIR /app
 
-# Cria o diretório de dados (onde o arquivo DuckDB será persistido)
-RUN mkdir -p /app/data
+# Define variáveis de ambiente
+ENV PYTHONUNBUFFERED=1
 
-# Copia os arquivos de código-fonte
-COPY src ./src
-# Copia o arquivo .env se for usado para configurações sensíveis (Boa Prática)
-COPY .env ./.env 
+# Copia as dependências instaladas do estágio 'builder'
+COPY --from=builder /usr/local/lib/python3.11/site-packages/ /usr/local/lib/python3.11/site-packages/
 
-# Copia as dependências instaladas no estágio de build
-# Isso evita reinstalar tudo no estágio final
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+# Copia o código-fonte (src) e o arquivo de configuração (.env)
+# Atenção: Esta linha corrige o erro de sintaxe do COPY e o erro de "casing"
+COPY ./src /app/src
+COPY ./.env /app/.env
 
-# Configura o PYTHONPATH para que os módulos internos sejam encontrados
-ENV PYTHONPATH=/app/src
-
-# Comando para executar a aplicação
-# -m arxiv_scraper.scraper chama a função main()
+# Comando de entrada para rodar a aplicação
 CMD ["python", "-m", "arxiv_scraper.scraper"]
