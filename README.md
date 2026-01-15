@@ -1,7 +1,7 @@
  **Trabalho realizado pelos alunos:
- **Márcio Leandro
- **Mônica Mendes
- **Rudi Modena
+ - **Márcio Leandro
+ - **Mônica Mendes
+ - **Rudi Modena
 
 # ArXiv Scraper - Computation and Language (cs.CL)
 
